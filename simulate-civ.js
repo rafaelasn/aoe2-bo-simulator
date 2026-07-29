@@ -42,8 +42,9 @@ let vils = [];
 let tc = {
     prod: "Vil",
     currentworktime: 0,
+    onGoingProd: false,
     chooseProd: function(){
-        myEmitter.emit(events.notification, "Ciclo concluído");
+        myEmitter.emit(events.notification, "Ciclo concluído; Food atual: " + resources.food + "; timestamp: " + timestamp);
     }
 } 
 
@@ -53,8 +54,9 @@ let entities = [
     new Vil(0, 3)
 ]
 
+let continueSimulation = true
 function simulateCiv(){
-    while(timestamp < 53) {
+    while(continueSimulation) {
         let interval = 1;
         timestamp += interval
         myEmitter.emit(events.timestampChange, interval)
@@ -62,22 +64,28 @@ function simulateCiv(){
     //console.log(entities)
 }
 
+let vilCost = 50;
 function tcWorkflow(interval) {
-    tc.currentworktime += 1;
-    if (tc.prod == "Vil") {
+    tc.currentworktime += interval;
+
+    if (!(tc.onGoingProd)) {
+        if (tc.prod == "Vil") {
+            if(resources.food >= vilCost) {
+                resources.food -= vilCost
+                tc.onGoingProd = true
+            } else continueSimulation = false;
+        }
+    }
+
+    if (tc.prod == "Vil" && tc.onGoingProd) {
         if (tc.currentworktime >= vilCreationTime) {
             tc.currentworktime -= vilCreationTime;
             vilCount += 1;
             entities.push(new Vil(timestamp - tc.currentworktime, vilCount))
-
+            tc.onGoingProd = false;
             tc.chooseProd()
         }
     }
-}
-
-function runTimeCycle(interval) {
-    timestamp += interval;
-    tcWorkflow(interval)
 }
 
 myEmitter.on("notification", (message) => {
@@ -85,6 +93,7 @@ myEmitter.on("notification", (message) => {
 })
 
 myEmitter.on(events.timestampChange, (interval) => {
+    if (timestamp > 600) continueSimulation = false;
     tcWorkflow(interval)
 }) 
 simulateCiv()
