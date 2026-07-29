@@ -1,4 +1,6 @@
 import {entityUtils} from './utils.js'
+import EventEmitter from 'node:events'
+import Resources from './Resources.js'
 
 class Action {
     constructor(name, duration){
@@ -23,6 +25,15 @@ class Vil {
     }
 }
 
+let resources = new Resources();
+
+let events = {
+    timestampChange: "timestampChange",
+    notification: "notification"
+}
+
+const myEmitter = new EventEmitter;
+
 let vilCount = 3
 let vilCreationTime = 25;
 let defaultTimeInterval = 1;
@@ -32,7 +43,7 @@ let tc = {
     prod: "Vil",
     currentworktime: 0,
     chooseProd: function(){
-        console.log("ciclo completo!")
+        myEmitter.emit(events.notification, "Ciclo concluído");
     }
 } 
 
@@ -44,9 +55,11 @@ let entities = [
 
 function simulateCiv(){
     while(timestamp < 53) {
-        runTimeCycle(defaultTimeInterval);
+        let interval = 1;
+        timestamp += interval
+        myEmitter.emit(events.timestampChange, interval)
     }
-    console.log(entities)
+    //console.log(entities)
 }
 
 function tcWorkflow(interval) {
@@ -67,4 +80,11 @@ function runTimeCycle(interval) {
     tcWorkflow(interval)
 }
 
+myEmitter.on("notification", (message) => {
+    console.log(message)
+})
+
+myEmitter.on(events.timestampChange, (interval) => {
+    tcWorkflow(interval)
+}) 
 simulateCiv()
