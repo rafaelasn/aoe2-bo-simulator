@@ -1,13 +1,13 @@
-import {entityUtils} from './utils.js'
+import { entityUtils } from './utils.js'
 import EventEmitter from 'node:events'
 import Resources from './Resources.js'
 
 class Action {
-    constructor(name, duration){
+    constructor(name, duration) {
         this.name = name
-        this.walkTime = name == "walk"? duration: 0;
-        this.foodTime = name == "food"? duration: 0;
-        this.woodTIme = name == "wood"? duration: 0;
+        this.walkTime = name == "walk" ? duration : 0;
+        this.foodTime = name == "food" ? duration : 0;
+        this.woodTIme = name == "wood" ? duration : 0;
     }
 }
 
@@ -18,9 +18,10 @@ class Vil {
         this.work = "idle";
         this.actionsQueue = []
         this.bag = 0;
-        this.findWork = function() {
+        this.findWork = function () {
+            return "food";
         }
-        this.dropOffFood = function() {
+        this.dropOffFood = function () {
         }
     }
 }
@@ -39,14 +40,16 @@ let vilCreationTime = 25;
 let defaultTimeInterval = 1;
 let timestamp = 0;
 let vils = [];
+
 let tc = {
     prod: "Vil",
     currentworktime: 0,
     onGoingProd: false,
-    chooseProd: function(){
+    foodUnderTc: [{ type: 'sheep', value: 150, decaying: false }, { type: 'sheep', value: 150, decaying: false }],
+    chooseProd: function () {
         myEmitter.emit(events.notification, "Ciclo concluído; Food atual: " + resources.food + "; timestamp: " + timestamp);
     }
-} 
+}
 
 let entities = [
     new Vil(0, 1),
@@ -55,8 +58,8 @@ let entities = [
 ]
 
 let continueSimulation = true
-function simulateCiv(){
-    while(continueSimulation) {
+function simulateCiv() {
+    while (continueSimulation) {
         let interval = 1;
         timestamp += interval
         myEmitter.emit(events.timestampChange, interval)
@@ -68,9 +71,11 @@ let vilCost = 50;
 function tcWorkflow(interval) {
     tc.currentworktime += interval;
 
+    let enoughFoodToMakeVil = (resources.food >= vilCost)
+
     if (!(tc.onGoingProd)) {
         if (tc.prod == "Vil") {
-            if(resources.food >= vilCost) {
+            if (enoughFoodToMakeVil) {
                 resources.food -= vilCost
                 tc.onGoingProd = true
             } else continueSimulation = false;
@@ -79,13 +84,17 @@ function tcWorkflow(interval) {
 
     if (tc.prod == "Vil" && tc.onGoingProd) {
         if (tc.currentworktime >= vilCreationTime) {
-            tc.currentworktime -= vilCreationTime;
-            vilCount += 1;
-            entities.push(new Vil(timestamp - tc.currentworktime, vilCount))
-            tc.onGoingProd = false;
-            tc.chooseProd()
+            deductWorktimeToMakeVil()
         }
     }
+}
+
+function deductWorktimeToMakeVil() {
+    tc.currentworktime -= vilCreationTime;
+    vilCount += 1;
+    entities.push(new Vil(timestamp - tc.currentworktime, vilCount))
+    tc.onGoingProd = false;
+    tc.chooseProd()
 }
 
 myEmitter.on("notification", (message) => {
@@ -95,5 +104,5 @@ myEmitter.on("notification", (message) => {
 myEmitter.on(events.timestampChange, (interval) => {
     if (timestamp > 600) continueSimulation = false;
     tcWorkflow(interval)
-}) 
+})
 simulateCiv()
