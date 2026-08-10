@@ -1,21 +1,15 @@
 import { entityUtils } from './utils.js'
 import EventEmitter from 'node:events'
 import Resources from './Resources.js'
+import { Action } from './Actions.js'
+import { BuildOrder } from './BuildOrder.js'
 
 let collectedFood = 0;
 let decayedFood = 0;
-
-class Action {
-    constructor(name, duration) {
-        this.name = name
-        this.walkTime = name == "walk" ? duration : 0;
-        this.foodTime = name == "food" ? duration : 0;
-        this.woodTIme = name == "wood" ? duration : 0;
-    }
-}
+let build = new BuildOrder("6 food; 4 wood; 4 food")
 
 class Vil {
-    constructor(spawn, id) {
+    constructor(spawn, id, build) {
         this.id = id;
         this.spawn = spawn;
         this.work = "idle";
@@ -27,8 +21,9 @@ class Vil {
 
         }
         this.findWork = function () {
-            return "food";
+            return build.getNextVilWork();
         }
+
         this.dropOffFood = function (type, resources) {
             if (type == "food") { resources.food += this.bag };
             //if (type == "wood") {resources.wood += this.bag};
@@ -62,6 +57,8 @@ class Sheep {
     }
 }
 
+// ~~~~~~~~~~~~~~~~~~ Main ~~~~~~~~~~~~~~~~~~~~~
+
 let resources = new Resources();
 
 let events = {
@@ -74,15 +71,21 @@ const myEmitter = new EventEmitter;
 let vilCount = 3
 let vilCreationTime = 25;
 let defaultTimeInterval = 1;
-let interval = 1;
+let forceDropoffCount = 0;
+const maxForceDropoffCount = 2;
+const interval = 1;
 let timestamp = 0;
 let vils = [];
 
 let entities = [
-    new Vil(0, 1),
-    new Vil(0, 2),
-    new Vil(0, 3)
+    new Vil(0, 1, build),
+    new Vil(0, 2, build),
+    new Vil(0, 3, build)
 ];
+
+entities.forEach(vil => {
+    vil.work = build.getNextVilWork()
+})
 
 let tc = {
     prod: "Vil",
@@ -97,8 +100,7 @@ let tc = {
 
 let continueSimulation = true
 function simulateCiv() {
-    console.log(tc);
-    
+
     while (continueSimulation) {
         timestamp += interval
         myEmitter.emit(events.timestampChange, interval)
@@ -119,6 +121,8 @@ function simulateCiv() {
     console.log("collected food: " + collectedFood)
     console.log("decayed food: " + decayedFood)
     console.log("actual created food: " + (decayedFood + collectedFood + vilFoodBag + 200))
+    console.log(build.buildOrder)
+    console.log("vil work attributed: " + build.vilWorkAttributed)
 }
 
 let vilCost = 50;
@@ -128,20 +132,50 @@ function tcWorkflow(interval) {
     gatherFoodUnderTc(interval)
 
     let enoughFoodToMakeVil = (resources.food >= vilCost)
-    if (!(tc.onGoingProd)) {
+    if (tc.onGoingProd == false) {
         if (tc.prod == "Vil") {
             if (enoughFoodToMakeVil) {
                 resources.food -= vilCost
                 tc.onGoingProd = true
-            } else continueSimulation = false;
+            } else {
+                let gatheringFoodBag = 0;
+                tc.gatheringFood.forEach(vil => {
+                    gatheringFoodBag += vil.bag;
+                });
+
+                if (gatheringFoodBag + resources.food < vilCost) {
+                    myEmitter.emit(events.notification, "Não há comida suficiente para criar um vil. Food atual: " + resources.food + "; timestamp: " + timestamp);
+                    continueSimulation = false;
+                } else {
+                    verifyMaxForceDropoffCount()
+                    forceDropoffFood();
+                }
+            }
         }
     }
+    continueVilProduction();
+}
 
+function continueVilProduction() {
     if (tc.prod == "Vil" && tc.onGoingProd) {
         if (tc.currentworktime >= vilCreationTime) {
             deductWorktimeToMakeVil();
         }
     }
+}
+
+function verifyMaxForceDropoffCount() {
+    if (forceDropoffCount >= maxForceDropoffCount) {
+        myEmitter.emit(events.notification, "Máximo de dropoffs atingido. Food atual: " + resources.food + "; timestamp: " + timestamp);
+        continueSimulation = false;
+    }
+}
+
+function forceDropoffFood() {
+    tc.gatheringFood.forEach(vil => {
+        vil.dropOffFood("food", resources)
+        forceDropoffCount += 1;
+    })
 }
 
 function gatherFoodUnderTc(interval) {
@@ -164,7 +198,6 @@ function gatherFoodUnderTc(interval) {
         } else { tc.foodUnderTc.shift() }
     })
 
-
 }
 
 function decayFromFoodSources() {
@@ -186,14 +219,14 @@ function deductWorktimeToMakeVil() {
 }
 
 function addNewVil(spawnTime, id) {
-    let newVil = new Vil(spawnTime, id);
+    let newVil = new Vil(spawnTime, id, build);
     entities.push(newVil)
 
     myEmitter.emit("newVil", newVil)
 }
 
 myEmitter.on("newVil", (newVil) => {
-    newVil.work = "food"
+    newVil.work = build.getNextVilWork();
 
     if (newVil.work == "food") {
         tc.gatheringFood.push(newVil)
@@ -209,4 +242,4 @@ myEmitter.on(events.timestampChange, (interval) => {
     tcWorkflow(interval)
 })
 
-simulateCiv()
+simulateCiv();
