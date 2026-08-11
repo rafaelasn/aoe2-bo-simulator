@@ -13,6 +13,13 @@ class Vil {
         this.id = id;
         this.spawn = spawn;
         this.work = "idle";
+        this.status = "idle";
+        this.workingTime = 0;
+        this.walkingSpeed = 0.8;
+        this.gatheringCamp = null;
+        this.gatheringRate = {
+            wood: 0.388
+        }
         this.actionsQueue = []
         this.bag = 0;
         this.maxCarry = {
@@ -25,13 +32,18 @@ class Vil {
         }
 
         this.dropOffFood = function (type, resources) {
-            if (type == "food") { resources.food += this.bag };
-            //if (type == "wood") {resources.wood += this.bag};
+            if (type == "food") {
+                resources.food += this.bag
+                collectedFood += this.bag;
+                console.log("bag being droppedOff: " + this.bag);
+                this.bag = 0;
+            };
+            if (type == "wood") {
+                this.status = "walking";
+                this.workingTime -= this.gatheringCamp._woodDistance / this.walkingSpeed;
+            };
 
-            collectedFood += this.bag;
-            console.log("bag being droppedOff: " + this.bag);
 
-            this.bag = 0;
         }
         this.addToBag = function (amount, resources, isHunt = false) {
             this.bag += amount;
@@ -59,6 +71,10 @@ class Sheep {
 
 // ~~~~~~~~~~~~~~~~~~ Main ~~~~~~~~~~~~~~~~~~~~~
 
+let world = {
+    resources: new Resources(),
+};
+
 let resources = new Resources();
 
 let events = {
@@ -75,15 +91,13 @@ let forceDropoffCount = 0;
 const maxForceDropoffCount = 2;
 const interval = 1;
 let timestamp = 0;
-let vils = [];
-
-let entities = [
+let villagers = [
     new Vil(0, 1, build),
     new Vil(0, 2, build),
     new Vil(0, 3, build)
 ];
 
-entities.forEach(vil => {
+villagers.forEach(vil => {
     vil.work = build.getNextVilWork()
 })
 
@@ -92,9 +106,9 @@ let tc = {
     currentworktime: 0,
     onGoingProd: false,
     foodUnderTc: [new Sheep(), new Sheep(), new Sheep(), new Sheep()],
-    gatheringFood: [entities[0], entities[1], entities[2]],
+    gatheringFood: [villagers[0], villagers[1], villagers[2]],
     chooseProd: function () {
-        myEmitter.emit(events.notification, "Ciclo concluído; Food atual: " + resources.food + "; timestamp: " + timestamp);
+        myEmitter.emit(events.notification, "Ciclo concluído; Food atual: " + world.resources.food + "; timestamp: " + timestamp);
     }
 }
 
@@ -106,15 +120,15 @@ function simulateCiv() {
         myEmitter.emit(events.timestampChange, interval)
     }
 
-    console.log(entities)
+    console.log(villagers)
     console.log("food under tc:")
     console.log(tc.foodUnderTc)
     console.log("encerrado em: " + timestamp)
-    console.log("food atual: " + resources.food)
+    console.log("food atual: " + world.resources.food)
     console.log("vilcount: " + vilCount)
 
     let vilFoodBag = 0;
-    entities.forEach(vil => {
+    villagers.forEach(vil => {
         vilFoodBag += vil.bag;
     })
 
@@ -122,7 +136,7 @@ function simulateCiv() {
     console.log("decayed food: " + decayedFood)
     console.log("actual created food: " + (decayedFood + collectedFood + vilFoodBag + 200))
     console.log(build.buildOrder)
-    console.log("vil work attributed: " + build.vilWorkAttributed)
+    console.log("vil work attributed: " + build._vilWorkAttributed)
 }
 
 let vilCost = 50;
@@ -131,11 +145,11 @@ function tcWorkflow(interval) {
 
     gatherFoodUnderTc(interval)
 
-    let enoughFoodToMakeVil = (resources.food >= vilCost)
+    let enoughFoodToMakeVil = (world.resources.food >= vilCost)
     if (tc.onGoingProd == false) {
         if (tc.prod == "Vil") {
             if (enoughFoodToMakeVil) {
-                resources.food -= vilCost
+                world.resources.food -= vilCost
                 tc.onGoingProd = true
             } else {
                 let gatheringFoodBag = 0;
@@ -143,8 +157,8 @@ function tcWorkflow(interval) {
                     gatheringFoodBag += vil.bag;
                 });
 
-                if (gatheringFoodBag + resources.food < vilCost) {
-                    myEmitter.emit(events.notification, "Não há comida suficiente para criar um vil. Food atual: " + resources.food + "; timestamp: " + timestamp);
+                if (gatheringFoodBag + world.resources.food < vilCost) {
+                    myEmitter.emit(events.notification, "Não há comida suficiente para criar um vil. Food atual: " + world.resources.food + "; timestamp: " + timestamp);
                     continueSimulation = false;
                 } else {
                     verifyMaxForceDropoffCount()
@@ -166,14 +180,14 @@ function continueVilProduction() {
 
 function verifyMaxForceDropoffCount() {
     if (forceDropoffCount >= maxForceDropoffCount) {
-        myEmitter.emit(events.notification, "Máximo de dropoffs atingido. Food atual: " + resources.food + "; timestamp: " + timestamp);
+        myEmitter.emit(events.notification, "Máximo de dropoffs atingido. Food atual: " + world.resources.food + "; timestamp: " + timestamp);
         continueSimulation = false;
     }
 }
 
 function forceDropoffFood() {
     tc.gatheringFood.forEach(vil => {
-        vil.dropOffFood("food", resources)
+        vil.dropOffFood("food", world.resources);
         forceDropoffCount += 1;
     })
 }
@@ -193,7 +207,7 @@ function gatherFoodUnderTc(interval) {
             if (!(foodSource.decaying)) { foodSource.decaying = true };
 
             let foodAmount = sheepGatherRate * interval;
-            foodVil.addToBag(foodAmount, resources);
+            foodVil.addToBag(foodAmount, world.resources);
             foodSource.value -= foodAmount;
         } else { tc.foodUnderTc.shift() }
     })
@@ -220,7 +234,7 @@ function deductWorktimeToMakeVil() {
 
 function addNewVil(spawnTime, id) {
     let newVil = new Vil(spawnTime, id, build);
-    entities.push(newVil)
+    villagers.push(newVil)
 
     myEmitter.emit("newVil", newVil)
 }
@@ -239,7 +253,13 @@ myEmitter.on("notification", (message) => {
 
 myEmitter.on(events.timestampChange, (interval) => {
     if (timestamp > 600) continueSimulation = false;
-    tcWorkflow(interval)
-})
+
+    villagers.forEach(vil => {
+        vil.workingTime += interval;
+    });
+
+    tcWorkflow(interval);
+
+});
 
 simulateCiv();

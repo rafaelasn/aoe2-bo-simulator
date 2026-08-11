@@ -1,7 +1,7 @@
 class BuildOrder {
     constructor(buildString = "6 food; 4 wood; 2 food") {
         this._buildString = buildString;
-        this.vilWorkAttributed = 0;
+        this._vilWorkAttributed = 0;
     }
 
     get buildOrder() {
@@ -18,8 +18,8 @@ class BuildOrder {
     } 
 
     getNextVilWork() {
-        let work = this.buildOrder[this.vilWorkAttributed]? this.buildOrder[this.vilWorkAttributed] : "Idle";
-        this.vilWorkAttributed++;
+        let work = this.buildOrder[this._vilWorkAttributed]? this.buildOrder[this._vilWorkAttributed] : "Idle";
+        this._vilWorkAttributed++;
         return work;
     }
 }
