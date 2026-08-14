@@ -1,4 +1,4 @@
-class Resources {
+class Bank {
     constructor() {
         this.food = 200;
         this.wood = 200;
@@ -7,4 +7,4 @@ class Resources {
     }
 }
 
-module.exports = Resources;
+module.exports = Bank;
