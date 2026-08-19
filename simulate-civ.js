@@ -3,76 +3,25 @@ import EventEmitter from 'node:events'
 import { Bank } from './Bank.js'
 import { Action } from './Actions.js'
 import { BuildOrder } from './BuildOrder.js'
+import { Vil } from './Vil.js'
+import { Sheep } from './herdables.js'
 
-let collectedFood = 0;
+let collectedResources = {
+    food: 0,
+    wood: 0,
+    stone: 0,
+    gold: 0
+};
 let decayedFood = 0;
 let build = new BuildOrder("6 food; 4 wood; 4 food")
-
-class Vil {
-    constructor(spawn, id, build) {
-        this.id = id;
-        this.spawn = spawn;
-        this.work = "idle";
-        this.status = "idle";
-        this.workingTime = 0;
-        this.walkingSpeed = 0.8;
-        this.gatheringCamp = null;
-        this.gatheringRate = {
-            wood: 0.388
-        }
-        this.actionsQueue = []
-        this.bag = 0;
-        this.maxCarry = {
-            default: 10,
-            hunt: 35
-
-        }
-        this.findWork = function () {
-            return build.getNextVilWork();
-        }
-
-        this.dropOffFood = function (type, bank) {
-            if (type == "food") {
-                bank.food += this.bag
-                collectedFood += this.bag;
-                console.log("bag being droppedOff: " + this.bag);
-                this.bag = 0;
-            };
-            if (type == "wood") {
-                this.status = "walking";
-                this.workingTime -= this.gatheringCamp._woodDistance / this.walkingSpeed;
-            };
-
-
-        }
-        this.addToBag = function (amount, bank, isHunt = false) {
-            this.bag += amount;
-            if (isHunt) {
-                if (this.bag >= this.maxCarry.hunt) {
-                    this.dropOffFood("food", bank)
-                }
-            } else {
-                if (this.bag >= this.maxCarry.default) {
-                    this.dropOffFood("food", bank)
-                }
-            }
-        }
-    }
-}
-
-class Sheep {
-    constructor() {
-        this.type = 'sheep';
-        this.value = 100;
-        this.decayRate = 0.25;
-        this.decaying = false
-    }
-}
 
 // ~~~~~~~~~~~~~~~~~~ Main ~~~~~~~~~~~~~~~~~~~~~
 
 let world = {
     bank: new Bank(),
+    buildings: {
+        lumbercamps: []
+    }
 };
 
 let bank = new Bank();
@@ -92,9 +41,9 @@ const maxForceDropoffCount = 2;
 const interval = 1;
 let timestamp = 0;
 let villagers = [
-    new Vil(0, 1, build),
-    new Vil(0, 2, build),
-    new Vil(0, 3, build)
+    new Vil(0, 1, build, collectedResources),
+    new Vil(0, 2, build, collectedResources),
+    new Vil(0, 3, build, collectedResources)
 ];
 
 villagers.forEach(vil => {
@@ -132,9 +81,9 @@ function simulateCiv() {
         vilFoodBag += vil.bag;
     })
 
-    console.log("collected food: " + collectedFood)
+    console.log("collected food: " + collectedResources.food)
     console.log("decayed food: " + decayedFood)
-    console.log("actual created food: " + (decayedFood + collectedFood + vilFoodBag + 200))
+    console.log("actual created food: " + (decayedFood + collectedResources.food + vilFoodBag + 200))
     console.log(build.buildOrder)
     console.log("vil work attributed: " + build._vilWorkAttributed)
 }
@@ -233,7 +182,7 @@ function deductWorktimeToMakeVil() {
 }
 
 function addNewVil(spawnTime, id) {
-    let newVil = new Vil(spawnTime, id, build);
+    let newVil = new Vil(spawnTime, id, build, collectedResources);
     villagers.push(newVil)
 
     myEmitter.emit("newVil", newVil)
@@ -258,12 +207,18 @@ myEmitter.on(events.timestampChange, (interval) => {
         vil.workingTime += interval;
     });
 
-    world.buildings.lumbercamps.forEach(camp => {
-        camp.collectWood();
-    });
+    gatherWoodCycle(world);
 
     tcWorkflow(interval);
 
 });
+
+function gatherWoodCycle(world) {
+    if (world.buildings.lumbercamps != undefined && world.buildings.lumbercamps.length > 0) {
+        world.buildings.lumbercamps.forEach(camp => {
+            camp.collectWood();
+        });
+    }
+}
 
 simulateCiv();

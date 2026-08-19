@@ -7,4 +7,4 @@ class Bank {
     }
 }
 
-module.exports = Bank;
+export { Bank };
