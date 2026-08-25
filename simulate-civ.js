@@ -5,6 +5,7 @@ import { Action } from './Actions.js'
 import { BuildOrder } from './BuildOrder.js'
 import { Vil } from './Vil.js'
 import { Sheep } from './herdables.js'
+import world from './world-instance.js'
 
 let collectedResources = {
     food: 0,
@@ -17,13 +18,6 @@ let build = new BuildOrder("6 food; 4 wood; 4 food")
 
 // ~~~~~~~~~~~~~~~~~~ Main ~~~~~~~~~~~~~~~~~~~~~
 
-let world = {
-    bank: new Bank(),
-    buildings: {
-        lumbercamps: []
-    }
-};
-
 let events = {
     timestampChange: "timestampChange",
     notification: "notification"
@@ -33,7 +27,6 @@ const myEmitter = new EventEmitter;
 
 let vilCount = 0
 let vilCreationTime = 25;
-let defaultTimeInterval = 1;
 let forceDropoffCount = 0;
 const maxForceDropoffCount = 2;
 const interval = 1;

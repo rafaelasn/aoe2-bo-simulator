@@ -25,9 +25,9 @@ class Lumbercamp {
             if (this._collectedSinceLastRenewal >= 2400) {
                 this._woodDistance = 3;
                 //rebuildCamp();
-            } else if (this._collectedSinceLastRenewal >= 1200) {
+            } else if (this._collectedSinceLastRenewal >= 1400) {
                 this._woodDistance = 2;
-            } else if (this._collectedSinceLastRenewal >= 400) {
+            } else if (this._collectedSinceLastRenewal >= 600) {
                 this._woodDistance = 1;
             }
         }
