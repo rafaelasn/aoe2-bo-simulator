@@ -24,8 +24,6 @@ let world = {
     }
 };
 
-let bank = new Bank();
-
 let events = {
     timestampChange: "timestampChange",
     notification: "notification"
@@ -33,29 +31,21 @@ let events = {
 
 const myEmitter = new EventEmitter;
 
-let vilCount = 3
+let vilCount = 0
 let vilCreationTime = 25;
 let defaultTimeInterval = 1;
 let forceDropoffCount = 0;
 const maxForceDropoffCount = 2;
 const interval = 1;
 let timestamp = 0;
-let villagers = [
-    new Vil(0, 1, build, collectedResources),
-    new Vil(0, 2, build, collectedResources),
-    new Vil(0, 3, build, collectedResources)
-];
-
-villagers.forEach(vil => {
-    vil.work = build.getNextVilWork()
-})
+let villagers = [];
 
 let tc = {
     prod: "Vil",
     currentworktime: 0,
     onGoingProd: false,
     foodUnderTc: [new Sheep(), new Sheep(), new Sheep(), new Sheep()],
-    gatheringFood: [villagers[0], villagers[1], villagers[2]],
+    gatheringFood: [],
     chooseProd: function () {
         myEmitter.emit(events.notification, "Ciclo concluído; Food atual: " + world.bank.food + "; timestamp: " + timestamp);
     }
@@ -63,6 +53,10 @@ let tc = {
 
 let continueSimulation = true
 function simulateCiv() {
+
+    addNewVil(timestamp, vilCount + 1);
+    addNewVil(timestamp, vilCount + 1);
+    addNewVil(timestamp, vilCount + 1);
 
     while (continueSimulation) {
         timestamp += interval
@@ -175,13 +169,14 @@ function decayFromFoodSources() {
 
 function deductWorktimeToMakeVil() {
     tc.currentworktime -= vilCreationTime;
-    vilCount += 1;
-    addNewVil(timestamp - tc.currentworktime, vilCount);
+    let id = vilCount + 1;
+    addNewVil(timestamp - tc.currentworktime, id);
     tc.onGoingProd = false;
     tc.chooseProd()
 }
 
 function addNewVil(spawnTime, id) {
+    vilCount += 1;
     let newVil = new Vil(spawnTime, id, build, collectedResources);
     villagers.push(newVil)
 
