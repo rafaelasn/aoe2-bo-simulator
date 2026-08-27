@@ -4,7 +4,7 @@ import { Bank } from './Bank.js'
 import { Action } from './Actions.js'
 import { BuildOrder } from './BuildOrder.js'
 import { Vil } from './Vil.js'
-import { Sheep } from './herdables.js'
+import { Sheep } from './resources/herdables.js'
 import world from './world-instance.js'
 
 let collectedResources = {
@@ -37,7 +37,7 @@ let tc = {
     prod: "Vil",
     currentworktime: 0,
     onGoingProd: false,
-    foodUnderTc: [new Sheep(), new Sheep(), new Sheep(), new Sheep()],
+    foodUnderTc: world.resources.foodSources.herdables,
     gatheringFood: [],
     chooseProd: function () {
         myEmitter.emit(events.notification, "Ciclo concluído; Food atual: " + world.bank.food + "; timestamp: " + timestamp);
@@ -71,7 +71,6 @@ function simulateCiv() {
     console.log("collected food: " + collectedResources.food)
     console.log("decayed food: " + decayedFood)
     console.log("actual created food: " + (decayedFood + collectedResources.food + vilFoodBag + 200))
-    console.log(build.buildOrder)
     console.log("vil work attributed: " + build._vilWorkAttributed)
 }
 
