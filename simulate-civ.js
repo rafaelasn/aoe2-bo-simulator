@@ -28,7 +28,7 @@ const myEmitter = new EventEmitter;
 let vilCount = 0
 let vilCreationTime = 25;
 let forceDropoffCount = 0;
-const maxForceDropoffCount = 2;
+const maxForceDropoff = 2;
 const interval = 1;
 let timestamp = 0;
 let villagers = [];
@@ -96,7 +96,7 @@ function tcWorkflow(interval) {
                     myEmitter.emit(events.notification, "Não há comida suficiente para criar um vil. Food atual: " + world.bank.food + "; timestamp: " + timestamp);
                     continueSimulation = false;
                 } else {
-                    verifyMaxForceDropoffCount()
+                    verifyMaxForceDropoffCount();
                     forceDropoffFood();
                 }
             }
@@ -114,7 +114,7 @@ function continueVilProduction() {
 }
 
 function verifyMaxForceDropoffCount() {
-    if (forceDropoffCount >= maxForceDropoffCount) {
+    if (forceDropoffCount >= maxForceDropoff) {
         myEmitter.emit(events.notification, "Máximo de dropoffs atingido. Food atual: " + world.bank.food + "; timestamp: " + timestamp);
         continueSimulation = false;
     }
@@ -129,7 +129,6 @@ function forceDropoffFood() {
 
 function gatherFoodUnderTc(interval) {
     let vilsGatheringCount = tc.gatheringFood.length;
-    let sheepGatherRate = 0.33;
 
     if (tc.foodUnderTc.length == 0) { return }
 
@@ -141,7 +140,7 @@ function gatherFoodUnderTc(interval) {
         if (foodSource.value >= 0) {
             if (!(foodSource.decaying)) { foodSource.decaying = true };
 
-            let foodAmount = sheepGatherRate * interval;
+            let foodAmount = foodSource.gatherRate * interval;
             foodVil.addToBag(foodAmount, world.bank);
             foodSource.value -= foodAmount;
         } else { tc.foodUnderTc.shift() }
