@@ -5,6 +5,7 @@ import { Action } from './Actions.js'
 import { BuildOrder } from './BuildOrder.js'
 import { Vil } from './Vil.js'
 import { Sheep } from './resources/herdables.js'
+import { Task } from './Task.js'
 import world from './world-instance.js'
 
 let collectedResources = {
@@ -14,7 +15,7 @@ let collectedResources = {
     gold: 0
 };
 let decayedFood = 0;
-let build = new BuildOrder("6 food; 4 wood; 4 food")
+let build = new BuildOrder("6 food; 4 wood; 1 boar; 4 food")
 
 // ~~~~~~~~~~~~~~~~~~ Main ~~~~~~~~~~~~~~~~~~~~~
 
@@ -22,6 +23,8 @@ let events = {
     timestampChange: "timestampChange",
     notification: "notification"
 }
+
+let tasks = []
 
 const myEmitter = new EventEmitter;
 
@@ -37,12 +40,14 @@ let tc = {
     prod: "Vil",
     currentworktime: 0,
     onGoingProd: false,
-    foodUnderTc: world.resources.foodSources.herdables,
+    foodUnderTc: [],
     gatheringFood: [],
     chooseProd: function () {
         myEmitter.emit(events.notification, "Ciclo concluído; Food atual: " + world.bank.food + "; timestamp: " + timestamp);
     }
 }
+
+tc.foodUnderTc.push(...world.resources.foodSources.herdables)
 
 let continueSimulation = true
 function simulateCiv() {
@@ -180,6 +185,15 @@ myEmitter.on("newVil", (newVil) => {
     if (newVil.work == "food") {
         tc.gatheringFood.push(newVil)
     }
+
+    if (newVil.work == "boar") {
+        let boar = world.resources.foodSources.huntables[0];
+        let lureDuration = boar.distance / newVil.walkingSpeed;
+        let huntCallback = function () {
+            tc.foodUnderTc.push(boar)
+        }
+        tasks.push(new Task(newVil, lureDuration, huntCallback))
+    }
 })
 
 myEmitter.on("notification", (message) => {
@@ -189,15 +203,22 @@ myEmitter.on("notification", (message) => {
 myEmitter.on(events.timestampChange, (interval) => {
     if (timestamp > 600) continueSimulation = false;
 
-    villagers.forEach(vil => {
-        vil.workingTime += interval;
-    });
+    villagers.forEach(vil => { vil.workingTime += interval });
+
+    tasks.forEach((task, index) => { task.developTask(task.vil.workingTime) })
 
     gatherWoodCycle(world);
 
     tcWorkflow(interval);
 
 });
+
+function lureBoar(vil, boar) {
+    vil.lureBoar(boar);
+
+}
+
+function onTimestampChangeEvent(callback) { }
 
 function gatherWoodCycle(world) {
     if (world.buildings.lumbercamps != undefined && world.buildings.lumbercamps.length > 0) {

@@ -48,6 +48,10 @@ class Vil {
                 }
             }
         }
+        this.lureBoar = function (boar) {
+            let timeNeededToLure = boar.distance / this.walkingSpeed;
+            this.workingTime -= timeNeededToLure;
+        }
     }
 }
 

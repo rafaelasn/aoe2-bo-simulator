@@ -3,6 +3,7 @@ class Boar {
     constructor(distanceFromTownCenter) {
         this.type = 'boar';
         this.value = 300;
+        this.gatherRate = 0.4725;
         this.distance = distanceFromTownCenter;
         this.decayRate = 0.4;
         this.decaying = false;
