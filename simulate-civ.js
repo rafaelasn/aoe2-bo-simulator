@@ -190,9 +190,9 @@ myEmitter.on("newVil", (newVil) => {
         let boar = world.resources.foodSources.huntables[0];
         let lureDuration = boar.distance / newVil.walkingSpeed;
         let huntCallback = function () {
-            tc.foodUnderTc.push(boar)
+            tc.foodUnderTc.splice(0, 0, boar);
         }
-        tasks.push(new Task(newVil, lureDuration, huntCallback))
+        tasks.push(new Task(newVil, lureDuration, huntCallback));
     }
 })
 
@@ -213,10 +213,7 @@ myEmitter.on(events.timestampChange, (interval) => {
 
 });
 
-function lureBoar(vil, boar) {
-    vil.lureBoar(boar);
-
-}
+function lureBoar(vil, boar) { vil.lureBoar(boar) }
 
 function onTimestampChangeEvent(callback) { }
 
